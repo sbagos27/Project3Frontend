@@ -14,10 +14,31 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Core icons
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
+  'chevron.right': 'search',
+
+  // Common UI icons
+  'person.fill': 'person',              // 👤 person
+  'person.2.fill': 'group',             // 👥 multiple people
+  'heart.fill': 'favorite',             // ❤️ heart
+  'star.fill': 'star',                  // ⭐ star
+  'bell.fill': 'notifications',         // 🔔 notifications
+  'gearshape.fill': 'settings',         // ⚙️ settings
+  'trash.fill': 'delete',               // 🗑️ trash
+  'bookmark.fill': 'bookmark',          // 🔖 bookmark
+  'plus.circle.fill': 'add-circle',     // ➕ add
+  'minus.circle.fill': 'remove-circle', // ➖ remove
+  'arrow.backward': 'arrow-back',       // ◀️ back
+  'arrow.forward': 'arrow-forward',     // ▶️ forward
+  'xmark': 'close',                     // ❌ close
+
+  // Fun / themed icons
+  'cat.fill': 'pets',                   // 🐱 cat (maps to Material “pets” icon)
+  'pawprint.fill': 'pets',              // 🐾 alternative for animal/pet
+
 } as IconMapping;
 
 /**
