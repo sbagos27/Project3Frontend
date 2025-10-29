@@ -1,4 +1,7 @@
 import React, { useMemo, useState } from "react";
+import Entypo from '@expo/vector-icons/Entypo';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
     View,
     Text,
@@ -38,12 +41,12 @@ export default function PostCard({
     const [showComments, setShowComments] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    const heart = liked ? "❤️" : "🤍";
+    const heart = liked ? <Entypo name="heart" size={32} color="#c2678a" /> : <Entypo name="heart-outlined" size={32} color="black" />;
 
     const handleLike = () => {
         const next = !liked;
         setLiked(next);
-        setLikeCount((c) => + (next ? 1: -1));
+        setLikeCount((c) => c + (next ? 1 : -1)); 
         onLikeToggle?.({ id, liked: next});
     };
 
@@ -120,14 +123,6 @@ export default function PostCard({
           </Text>
           {creator.handle ? <Text style={styles.creatorHandle}>@{creator.handle}</Text> : null}
         </View>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={liked ? "Unlike post" : "Like post"}
-          onPress={handleLike}
-          style={styles.likeBtn}
-        >
-          <Text style={styles.likeIcon}>{heart}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Photo */}
@@ -148,7 +143,7 @@ export default function PostCard({
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowComments((v) => !v)}>
           <Text style={styles.actionText}>
-            💬 {commentCount} {showComments ? "Hide" : "View"}
+            <Ionicons name="chatbox-ellipses-outline" size={32} color="black" /> 
           </Text>
         </TouchableOpacity>
       </View>
@@ -186,7 +181,7 @@ export default function PostCard({
           accessibilityRole="button"
           accessibilityLabel="Post comment"
         >
-          <Text style={styles.sendText}>Send</Text>
+          <MaterialCommunityIcons name="send" size={18} color="white" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
