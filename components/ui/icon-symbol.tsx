@@ -35,9 +35,22 @@ const MAPPING = {
   'arrow.forward': 'arrow-forward',     // ▶️ forward
   'xmark': 'close',                     // ❌ close
 
-  // Fun / themed icons
-  'cat.fill': 'pets',                   // 🐱 cat (maps to Material “pets” icon)
-  'pawprint.fill': 'pets',              // 🐾 alternative for animal/pet
+  // 🐱 Cat / Pet related
+  'cat.fill': 'pets',           // 🐱 main cat icon
+  'pawprint.fill': 'pets',      // 🐾 alternative pet icon
+  'cat.circle': 'face',         // 🐱 circular cat-like face (cute option)
+  'fish.fill': 'set-meal',      // 🐟 (Material “set-meal” looks like a fish)
+  'dog.fill': 'pets',           // 🐶 optional (same “pets” icon)
+
+  // 📸 Instagram-style / Media icons
+  'camera.fill': 'photo-camera',   // 📷 camera
+  'camera.circle.fill': 'camera-alt', // alternative camera icon
+  'video.fill': 'videocam',        // 🎥 video
+  'play.rectangle.fill': 'play-circle', // ▶️ play icon
+  'square.and.arrow.up': 'share',  // 🔗 share
+  'bubble.left.fill': 'chat-bubble', // 💬 comment/message
+  'heart.circle.fill': 'favorite', // ❤️ like/heart
+  'grid.circle.fill': 'grid-on',   // 🧩 grid / feed view
 
 } as IconMapping;
 
