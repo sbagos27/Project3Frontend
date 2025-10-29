@@ -1,98 +1,130 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from "react";
+import { View, FlatList, RefreshControl, ActivityIndicator, SafeAreaView } from "react-native";
+import PostCard from "@/components/post-card";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Post = {
+  id: string;
+  imageUrl: string;
+  creator: { name: string; handle?: string; avatarUrl?: string };
+  liked?: boolean;
+  likes?: number;
+  comments?: Array<{ id: string; author: { name: string; avatarUrl?: string }; text: string; createdAt?: string }>;
+};
 
-export default function HomeScreen() {
+export default function FeedScreen() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  
+  const fetchPage = async (pageNum: number): Promise<{ items: Post[]; hasMore: boolean }> => {
+    //this is just for testing for now but will use api/database for full functionality once implemented.
+    await new Promise((r) => setTimeout(r, 400));
+    const start = (pageNum - 1) * 8;
+    const items: Post[] = Array.from({ length: 8 }).map((_, i) => {
+      const id = `p_${start + i + 1}`;
+      return {
+        id,
+        imageUrl: `https://m.media-amazon.com/images/I/517i1zjTFNL._AC_UF1000,1000_QL80_.jpg`,
+        creator: { name: ["Andrew", "Keith", "Gabriel", "Senen"][i % 4], handle: "user" + ((i % 4) + 1), avatarUrl : "https://i.kym-cdn.com/editorials/icons/mobile/000/013/069/guy-pointing-at-himself.jpg"},
+        liked: Math.random() > 0.5,
+        likes: Math.floor(Math.random() * 200),
+        comments: [
+          { id: `${id}_c1`, author: { name: "MrComments" }, text: "What a cool cat!", createdAt: new Date(Date.now() - 3600_000).toISOString() },
+        ],
+      };
+    });
+    return { items, hasMore: pageNum < 5 }; 
+  };
+
+  const loadInitial = useCallback(async () => {
+    const res = await fetchPage(1);
+    setPosts(res.items);
+    setPage(1);
+    setHasMore(res.hasMore);
+  }, []);
+
+  useEffect(() => {
+    loadInitial();
+  }, [loadInitial]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetchPage(1);
+      setPosts(res.items);
+      setPage(1);
+      setHasMore(res.hasMore);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  const onEndReached = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await fetchPage(next);
+      setPosts((p) => [...p, ...res.items]);
+      setPage(next);
+      setHasMore(res.hasMore);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome to hell!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fafafa" }}>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <PostCard
+            id={item.id}
+            imageUrl={item.imageUrl}
+            creator={item.creator}
+            initialLiked={item.liked}
+            initialLikeCount={item.likes}
+            initialComments={item.comments}
+            style={{
+              width: "100%",
+              maxWidth: 680,         
+              alignSelf: "center",
+              marginVertical: 10,
+            }}
+            onLikeToggle={({ id, liked }) => {
+              
+            }}
+            onSubmitComment={async ({ id, text }) => {
+            
+            }}
+          />
+        )}
+        contentContainerStyle={{
+          paddingVertical: 8,
+          
+          paddingHorizontal: 12,
+          gap: 0,
+        }}
+        ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.35}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 16 }}>
+              <ActivityIndicator />
+            </View>
+          ) : null
+        }
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={4}
+        windowSize={8}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
