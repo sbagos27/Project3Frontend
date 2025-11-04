@@ -23,7 +23,7 @@ async function apiCallAsString(url) {
   return await res.text();
 }
 
-const pullTest = async () => {
+export const pullTest = async () => {
   try {
     const data = await apiCall("https://group5project3-74e9cad2d6ba.herokuapp.com/api/posts/ping");
     console.log("Ping response:", data);
