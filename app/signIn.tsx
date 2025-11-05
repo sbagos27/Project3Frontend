@@ -16,7 +16,7 @@ export default function SignInScreen() {
 
         {/* Replace with real auth later */}
         <Pressable
-          onPress={() => router.replace('/home')}
+          onPress={() => router.replace('/selectCat')}
           style={({ pressed }) => [
             globalStyles.button,
             { opacity: pressed ? 0.7 : 1 },
