@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TextInput, StyleSheet, View } from 'react-native';
-import { Stack } from 'expo-router'; // 👈 add this line
+import { Stack } from 'expo-router'; 
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';

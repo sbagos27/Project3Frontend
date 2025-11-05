@@ -41,6 +41,7 @@ const MAPPING = {
   'cat.circle': 'face',         // 🐱 circular cat-like face (cute option)
   'fish.fill': 'set-meal',      // 🐟 (Material “set-meal” looks like a fish)
   'dog.fill': 'pets',           // 🐶 optional (same “pets” icon)
+  
 
   // 📸 Instagram-style / Media icons
   'camera.fill': 'photo-camera',   // 📷 camera
