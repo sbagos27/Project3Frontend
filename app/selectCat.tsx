@@ -8,7 +8,7 @@ export default function SelectCatScreen() {
   const router = useRouter();
 
   // Mocked profile list (replace with real data later)
-  const [cats, setCats] = useState<string[]>(['Miso']);
+  const [cats, setCats] = useState<string[]>(['LeBron', 'Patches']);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
