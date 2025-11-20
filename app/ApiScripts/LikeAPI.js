@@ -1,3 +1,6 @@
+// since we are using a strict OAUTH we will have to figure how to store our token to access our routes and what not
+// just an extra step
+
 import { authFetch } from "./authFetch";
 
 const BASE_URL = "https://group5project3-74e9cad2d6ba.herokuapp.com/api/likes";
