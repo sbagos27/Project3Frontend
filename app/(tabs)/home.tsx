@@ -1,12 +1,12 @@
+// app/(tabs)/home.tsx
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';              // ✅ IMPORTANT
+import { ActivityIndicator, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import Header from '@/components/Header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-
-import { globalStyles, brandColor } from '@/styles/globalStyle';
+import { globalStyles } from '@/styles/globalStyle';
 import { getJwt } from '@/utils/auth';
 
 const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
@@ -64,58 +64,62 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: brandColor, dark: brandColor }}
-      headerImage={<></>}  // ✅ no React logo
-    >
-      {/* Whiskr brand header */}
-      <ThemedView style={globalStyles.headerBrandContainer}>
-        <ThemedText style={globalStyles.headerBrandText}>Whiskr</ThemedText>
-      </ThemedView>
+    <>
+      {/* 🔹 Top bar: Whiskr left + two buttons right (from your Header component) */}
+      <Header />
 
-      {loading && (
-        <ThemedView style={globalStyles.centered}>
-          <ActivityIndicator />
-          <ThemedText style={{ marginTop: 8 }}>Loading cats…</ThemedText>
-        </ThemedView>
-      )}
-
-      {error && !loading && (
-        <ThemedView style={globalStyles.centered}>
-          <ThemedText type="subtitle">Error</ThemedText>
-          <ThemedText>{error}</ThemedText>
-        </ThemedView>
-      )}
-
-      {!loading && !error && posts.length === 0 && (
-        <ThemedView style={globalStyles.centered}>
-          <ThemedText>No posts yet. Be the first to share a cat!</ThemedText>
-        </ThemedView>
-      )}
-
-      {!loading &&
-        !error &&
-        posts.map((post) => (
-          <ThemedView key={post.id} style={globalStyles.postCard}>
-            {post.imageUrl && (
-              <Image
-                source={{ uri: post.imageUrl }}
-                style={globalStyles.postImage}
-                contentFit="cover"
-              />
-            )}
-
-            <ThemedText type="subtitle" style={globalStyles.caption}>
-              {post.caption || 'No caption'}
-            </ThemedText>
-
-            {post.createdAt && (
-              <ThemedText style={globalStyles.metaText}>
-                Posted on {new Date(post.createdAt).toLocaleString()}
-              </ThemedText>
-            )}
+      {/* 🔹 Scrollable feed content underneath */}
+      <ScrollView>
+        <ThemedView style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}>
+          <ThemedView style={globalStyles.titleContainer}>
+            <ThemedText type="title">Whiskr Feed</ThemedText>
           </ThemedView>
-        ))}
-    </ParallaxScrollView>
+
+          {loading && (
+            <ThemedView style={globalStyles.centered}>
+              <ActivityIndicator />
+              <ThemedText style={{ marginTop: 8 }}>Loading cats…</ThemedText>
+            </ThemedView>
+          )}
+
+          {error && !loading && (
+            <ThemedView style={globalStyles.centered}>
+              <ThemedText type="subtitle">Error</ThemedText>
+              <ThemedText>{error}</ThemedText>
+            </ThemedView>
+          )}
+
+          {!loading && !error && posts.length === 0 && (
+            <ThemedView style={globalStyles.centered}>
+              <ThemedText>No posts yet. Be the first to share a cat!</ThemedText>
+            </ThemedView>
+          )}
+
+          {!loading &&
+            !error &&
+            posts.map((post) => (
+              <ThemedView key={post.id} style={globalStyles.postCard}>
+                {post.imageUrl && (
+                  <Image
+                    source={{ uri: post.imageUrl }}
+                    style={globalStyles.postImage}
+                    contentFit="cover"
+                  />
+                )}
+
+                <ThemedText type="subtitle" style={globalStyles.caption}>
+                  {post.caption || 'No caption'}
+                </ThemedText>
+
+                {post.createdAt && (
+                  <ThemedText style={globalStyles.metaText}>
+                    Posted on {new Date(post.createdAt).toLocaleString()}
+                  </ThemedText>
+                )}
+              </ThemedView>
+            ))}
+        </ThemedView>
+      </ScrollView>
+    </>
   );
 }
