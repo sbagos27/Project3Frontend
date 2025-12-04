@@ -40,16 +40,6 @@ export default function SignInScreen() {
         </Pressable>
 
         
-        {/* Test Redirect Button */}
-        <Pressable
-          onPress={() => router.push("/test-redirect")}
-          style={({ pressed }) => [
-            globalStyles.button,
-            { opacity: pressed ? 0.7 : 1, marginTop: 12 },
-          ]}
-        >
-          <Text style={globalStyles.buttonText}>Test Redirect</Text>
-        </Pressable>
 
         <Text style={{ marginTop: 12, color: '#666' }}>
           You can still browse cats without signing in.
