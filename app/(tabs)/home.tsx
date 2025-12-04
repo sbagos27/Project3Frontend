@@ -37,6 +37,7 @@ export default function HomeScreen() {
           setLoading(false);
           return;
         }
+        console.log("TOKEN:",token);
 
         const res = await fetch(`${BASE_URL}/api/posts`, {
           headers: {
