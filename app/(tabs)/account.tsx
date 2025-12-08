@@ -1,10 +1,8 @@
-// app/(tabs)/account.tsx
-// app/(tabs)/account.tsx
+
 import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
@@ -23,10 +21,15 @@ import {
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
+
 import PostCard from '@/components/post-card';
 import { getJwt, getSelectedCatId } from '@/utils/auth';
-
-type Item = { id: string; image: string };
+import {
+  getCurrentUser,
+  getPostsByCat,
+  User as ApiUser,
+  Post as ApiPost,
+} from '@/utils/api';
 
 const COLS = 3;
 const GAP = 3;
@@ -34,25 +37,36 @@ const SCREEN_W = Dimensions.get('window').width;
 const IMG_SIZE = Math.floor((SCREEN_W - GAP * (COLS - 1)) / COLS);
 
 export default function ProfileScreen() {
+  // Auth/token gating
   const [token, setToken] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Selected cat
   const [selectedCatId, setSelectedCatIdState] = useState<number | null>(null);
   const [catLoading, setCatLoading] = useState(true);
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Item | null>(null);
-  const hasMounted = useRef(false);
+  // User
+  const [user, setUser] = useState<ApiUser | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
+  const [userError, setUserError] = useState<string | null>(null);
 
+  // Posts for selected cat
+  const [posts, setPosts] = useState<ApiPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
+
+  // Refresh + modal
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<ApiPost | null>(null);
+
+  // 1) Load JWT
   useEffect(() => {
     const loadToken = async () => {
       try {
         setAuthLoading(true);
         setAuthError(null);
+
         const t = await getJwt();
         if (!t) {
           setAuthError('You must sign in first.');
@@ -70,7 +84,7 @@ export default function ProfileScreen() {
     loadToken();
   }, []);
 
-  // 🔹 Load selected cat ID from storage once we know the user is signed in
+  // 2) Load selected cat ID once we have a token
   useEffect(() => {
     if (!token) return;
 
@@ -89,61 +103,66 @@ export default function ProfileScreen() {
     loadSelectedCat();
   }, [token]);
 
-  // This will change to pull from user database/api in the future.
-  const user = {
-    username: 'aUser',
-    name: 'John Cena',
-    avatar:
-      'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMTEhUTEhIVFhUVFRUXFxUYFhcXFRUVFxUXFhgWFRUYHSggGBolHRYXITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0mHSYtLS8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAOEA4QMBIgACEQEDEQH/...', // shortened
-    bio: 'I love cats LOL',
-    stats: { posts: 67, followers: 67, following: 67 },
-  } as const;
-
-  // Initial load of grid images (dummy data for now)
+  // 3) Load current user from /api/users/me
   useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
-    setItems(
-      Array.from({ length: 18 }).map((_, i) => ({
-        id: `p_${i + 1}`,
-        image:
-          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxASEhUSExMVFhUXFhcXGRcXFxoXFRgXFRUWFhUYGhkYHSggGholHRYYIjEhJSkrLi4uFx8zODUtNygtLisBCgoKDg0OGxAQGy0mHyUtLTUtLS8vLzUrMC0tLS0tNS0tKy0tKy8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAL4BCQMBIgACEQEDEQH/...',
-      })),
-    );
-  }, []);
+    if (!token) return;
 
+    const loadUser = async () => {
+      try {
+        setUserLoading(true);
+        setUserError(null);
+
+        const u = await getCurrentUser();
+        if (!u) {
+          setUserError('Failed to load user.');
+        } else {
+          setUser(u);
+        }
+      } catch (err: any) {
+        console.error('Failed to load user:', err);
+        setUserError(err.message || 'Failed to load user.');
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [token]);
+
+  // 4) Load posts for the active cat from /api/posts/cat/{catId}
+  const loadPosts = useCallback(
+    async (catId: number) => {
+      try {
+        setPostsLoading(true);
+        setPostsError(null);
+
+        const catPosts = await getPostsByCat(catId);
+        setPosts(catPosts);
+      } catch (err: any) {
+        console.error('Failed to load posts:', err);
+        setPostsError(err.message || 'Failed to load posts.');
+      } finally {
+        setPostsLoading(false);
+      }
+    },
+    [],
+  );
+
+  // Initial posts load / reload when cat changes
+  useEffect(() => {
+    if (!token || selectedCatId == null) return;
+    loadPosts(selectedCatId);
+  }, [token, selectedCatId, loadPosts]);
+
+  // Pull-to-refresh
   const onRefresh = useCallback(async () => {
+    if (!token || selectedCatId == null) return;
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 350));
-    setItems(
-      Array.from({ length: 18 }).map((_, i) => ({
-        id: `p_${i + 1}`,
-        image:
-          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxASEhUSExMVFhUXFhcXGRcXFxoXFRgXFRUWFhUYGhkYHSggGholHRYYIjEhJSkrLi4uFx8zODUtNygtLisBCgoKDg0OGxAQGy0mHyUtLTUtLS8vLzUrMC0tLS0tNS0tKy0tKy8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAL4BCQMBIgACEQEDEQH/...',
-      })),
-    );
-    setPage(1);
+    await loadPosts(selectedCatId);
     setRefreshing(false);
-  }, []);
+  }, [token, selectedCatId, loadPosts]);
 
-  const onEndReached = useCallback(async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    await new Promise((r) => setTimeout(r, 350));
-    const next = page + 1;
-
-    setItems((prev) => [
-      ...prev,
-      ...Array.from({ length: 12 }).map((_, i) => ({
-        id: `p_${prev.length + i + 1}`,
-        image:
-          'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxASEhUSExMVFhUXFhcXGRcXFxoXFRgXFRUWFhUYGhkYHSggGholHRYYIjEhJSkrLi4uFx8zODUtNygtLisBCgoKDg0OGxAQGy0mHyUtLTUtLS8vLzUrMC0tLS0tNS0tKy0tKy8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAL4BCQMBIgACEQEDEQH/...',
-      })),
-    ]);
-    setPage(next);
-    setLoadingMore(false);
-  }, [loadingMore, page]);
-
+  // Header for FlatList
   const renderHeader = useCallback(
     () => (
       <View>
@@ -163,52 +182,78 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Top bar */}
-        <View style={styles.topBar}>
-          <Text style={styles.username}>@{user.username}</Text>
-          <MaterialIcons name="menu" size={22} />
-        </View>
-
-        {/* Profile row */}
-        <View style={styles.profileRow}>
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          <View style={styles.statsRow}>
-            <Stat num={user.stats.posts} label="Posts" />
-            <Stat num={user.stats.followers} label="Followers" />
-            <Stat num={user.stats.following} label="Following" />
+        {/* User info */}
+        {!user ? (
+          <View style={styles.profileRow}>
+            <ActivityIndicator />
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Top bar */}
+            <View style={styles.topBar}>
+              <Text style={styles.username}>@{user.username}</Text>
+              <MaterialIcons name="menu" size={22} />
+            </View>
 
-        {/* Bio */}
-        <View style={styles.bioBlock}>
-          <Text style={styles.name}>{user.name}</Text>
-          {!!user.bio && <Text style={styles.bioText}>{user.bio}</Text>}
-        </View>
+            {/* Profile row */}
+            <View style={styles.profileRow}>
+              {/* You don't have an avatar URL from backend yet, so use a placeholder */}
+              <View style={styles.avatarPlaceholder}>
+                <Text style={{ fontWeight: '700', fontSize: 26, color: '#555' }}>
+                  {user.username.charAt(0).toUpperCase()}
+                </Text>
+              </View>
 
-        {/* Buttons */}
-        <View style={styles.buttonsRow}>
-          <Button text="Edit Profile" />
-          <Button text="Share Profile" />
-        </View>
+              <View style={styles.statsRow}>
+                {/* Posts count = number of posts for this cat (or you could fetch by user instead) */}
+                <Stat num={posts.length} label="Posts" />
+                <Stat num={0} label="Followers" />
+                <Stat num={0} label="Following" />
+              </View>
+            </View>
+
+            {/* Bio block – you don’t have bio in backend yet, so just show email/provider */}
+            <View style={styles.bioBlock}>
+              <Text style={styles.name}>{user.username}</Text>
+              {user.email && (
+                <Text style={styles.bioText}>Email: {user.email}</Text>
+              )}
+              {user.provider && (
+                <Text style={styles.bioText}>Signed in with {user.provider}</Text>
+              )}
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttonsRow}>
+              <Button text="Edit Profile" />
+              <Button text="Share Profile" />
+            </View>
+          </>
+        )}
       </View>
     ),
-    [user, selectedCatId],
+    [user, selectedCatId, posts.length],
   );
 
-  const renderItem: ListRenderItem<Item> = useCallback(
+  // Grid item renderer
+  const renderItem: ListRenderItem<ApiPost> = useCallback(
     ({ item }) => (
-      <TouchableOpacity activeOpacity={0.85} onPress={() => setSelected(item)}>
-        <Image source={{ uri: item.image }} style={styles.gridImg} />
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => setSelectedPost(item)}
+      >
+        <Image source={{ uri: item.imageUrl }} style={styles.gridImg} />
       </TouchableOpacity>
     ),
     [],
   );
 
-  const keyExtractor = useCallback((it: Item) => it.id, []);
+  const keyExtractor = useCallback((p: ApiPost) => String(p.id), []);
   const columnWrapperStyle = useMemo(() => ({ gap: GAP }), []);
 
-  // 🔐 Auth + cat gating
-  if (authLoading || catLoading) {
+  // ---------- Gating & error handling ----------
+
+  if (authLoading || catLoading || userLoading || postsLoading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator />
@@ -226,16 +271,25 @@ export default function ProfileScreen() {
   }
 
   // Signed in but no cat yet: go to selectCat screen
-  if (!selectedCatId) {
+  if (selectedCatId == null) {
     router.replace('/selectCat');
     return null;
   }
 
-  // 🔓 Logged-in + cat selected
+  if (userError || postsError) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text>{userError || postsError}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // ---------- Main UI ----------
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <FlatList
-        data={items}
+        data={posts}
         keyExtractor={keyExtractor}
         numColumns={COLS}
         columnWrapperStyle={columnWrapperStyle}
@@ -245,41 +299,47 @@ export default function ProfileScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        onEndReachedThreshold={0.35}
-        onEndReached={onEndReached}
         showsVerticalScrollIndicator={false}
         initialNumToRender={18}
         removeClippedSubviews
+        ListEmptyComponent={
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <Text style={{ color: '#777' }}>No posts yet for this cat.</Text>
+          </View>
+        }
       />
+
+      {/* Post modal */}
       <Modal
-        visible={!!selected}
+        visible={!!selectedPost}
         animationType="slide"
         transparent
-        onRequestClose={() => setSelected(null)}
+        onRequestClose={() => setSelectedPost(null)}
         statusBarTranslucent
       >
         <TouchableOpacity
           activeOpacity={1}
           style={styles.backdrop}
-          onPress={() => setSelected(null)}
+          onPress={() => setSelectedPost(null)}
         />
 
         <SafeAreaView style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <TouchableOpacity
               style={styles.closeBtn}
-              onPress={() => setSelected(null)}
+              onPress={() => setSelectedPost(null)}
             >
               <MaterialIcons name="close" size={22} />
             </TouchableOpacity>
           </View>
 
           <View style={{ flex: 1 }}>
-            {selected && (
+            {selectedPost && (
               <PostCard
-                id="1"
-                image="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..." // shortened
-                creator="Shane Dawson"
+                id={String(selectedPost.id)}
+                image={selectedPost.imageUrl}
+                creator={user?.username ?? 'Unknown'}
+                // if PostCard supports caption, you can pass selectedPost.caption too
               />
             )}
           </View>
@@ -288,6 +348,8 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
+
+// ---------- Small components & styles ----------
 
 function Stat({ num, label }: { num: number; label: string }) {
   return (
@@ -360,11 +422,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 16,
   },
-  avatar: {
+  avatarPlaceholder: {
     width: 86,
     height: 86,
     borderRadius: 43,
     backgroundColor: '#eee',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsRow: {
     flex: 1,
@@ -381,10 +445,6 @@ const styles = StyleSheet.create({
   bioText: {
     color: '#222',
     marginBottom: 2,
-  },
-  linkText: {
-    color: '#0a84ff',
-    marginBottom: 8,
   },
   buttonsRow: {
     flexDirection: 'row',
@@ -403,14 +463,6 @@ const styles = StyleSheet.create({
   btnText: {
     fontWeight: '600',
   },
-  buttonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f2f2f2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   gridImg: {
     width: IMG_SIZE,
     height: IMG_SIZE,
@@ -419,7 +471,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgb(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   modalCard: {
     flex: 1,
