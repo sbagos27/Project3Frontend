@@ -1,6 +1,6 @@
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const CAT_KEY = 'selectedCatId';
 
@@ -41,3 +41,28 @@ export async function logout() {
   }
 }
 
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = Buffer.from(payload, 'base64').toString('utf8');
+    return JSON.parse(decoded);
+  } catch (err) {
+    console.error("Failed to decode JWT:", err);
+    return null;
+  }
+}
+
+export async function getUserId(): Promise<number | null> {
+  const token = await getJwt();
+  if (!token) return null;
+
+  const payload = decodeJwtPayload(token);
+  if (!payload) return null;
+
+  return (
+    payload.id ||
+    payload.userId ||
+    Number(payload.sub) || 
+    null
+  );
+}
