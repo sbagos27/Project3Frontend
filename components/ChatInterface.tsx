@@ -1,4 +1,5 @@
-import { ChatMessage, useWebSocket } from '@/hooks/useWebSocket';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { ChatMessage, getChatHistory } from '@/utils/api';
 import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -26,22 +27,45 @@ export default function ChatInterface({
     wsUrl,
 }: ChatInterfaceProps) {
     const [messageText, setMessageText] = useState('');
+    const [historyMessages, setHistoryMessages] = useState<ChatMessage[]>([]);
     const flatListRef = useRef<FlatList>(null);
-    const { connected, messages, sendMessage } = useWebSocket({ userId, wsUrl });
+    const { connected, messages: realtimeMessages, sendMessage } = useWebSocket({ userId, wsUrl });
 
-    // Filter messages for current conversation
-    const conversationMessages = messages.filter(
-        (msg) =>
-            (msg.senderId === userId && msg.recipientId === recipientId) ||
-            (msg.senderId === recipientId && msg.recipientId === userId)
-    );
+    // Load history on mount or when recipient changes
+    useEffect(() => {
+        const loadHistory = async () => {
+            if (userId && recipientId) {
+                const history = await getChatHistory(recipientId);
+                setHistoryMessages(history);
+            }
+        };
+        loadHistory();
+    }, [userId, recipientId]);
+
+    // Merge and filter messages
+    const allMessages = [...historyMessages, ...realtimeMessages].filter(
+        (msg, index, self) =>
+            // Filter for current conversation
+            ((msg.senderId === userId && msg.recipientId === recipientId) ||
+                (msg.senderId === recipientId && msg.recipientId === userId)) &&
+            // Deduplicate based on ID if available, or timestamp+content
+            index === self.findIndex((m) => (
+                (m.id && m.id === msg.id) ||
+                (m.timestamp === msg.timestamp && m.content === msg.content)
+            ))
+    ).sort((a, b) => {
+        // Sort by timestamp
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return timeA - timeB;
+    });
 
     useEffect(() => {
         // Auto-scroll to bottom when new messages arrive
-        if (conversationMessages.length > 0) {
-            flatListRef.current?.scrollToEnd({ animated: true });
+        if (allMessages.length > 0) {
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         }
-    }, [conversationMessages.length]);
+    }, [allMessages.length]);
 
     const handleSend = () => {
         if (messageText.trim() && connected) {
@@ -98,7 +122,7 @@ export default function ChatInterface({
             {/* Messages List */}
             <FlatList
                 ref={flatListRef}
-                data={conversationMessages}
+                data={allMessages}
                 keyExtractor={(item, index) => `${item.senderId}-${item.recipientId}-${index}`}
                 renderItem={renderMessage}
                 contentContainerStyle={styles.messagesContainer}
