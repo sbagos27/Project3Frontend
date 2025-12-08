@@ -36,48 +36,48 @@ export default function AddScreen() {
     loadToken();
   }, []);
 
-  const handleCreatePost = async () => {
-    try {
-      setPosting(true);
-      setMessage(null);
+ const handleCreatePost = async () => {
+  try {
+    setPosting(true);
+    setMessage(null);
 
-      const userId = await getUserId(); 
+    const userId = await getUserId();
 
-      const body = {
-        authorId: userId,
-        caption: caption,
-        imageUrl: imageUrl,
-        likesCount: 0,
-        commentCount: 0,
-        catId: Number(catId),
-      };
+    // EXACT format expected by your backend
+    const body = {
+      authorId: userId,
+      caption: caption,
+      imageUrl: imageUrl,
+      likesCount: 0,
+      commentCount: 0,
+      catId: Number(catId),
+    };
 
-      const res = await fetch(`${BASE_URL}/api/posts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
+    const res = await fetch(`${BASE_URL}/api/posts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text);
-      }
-
-      setMessage("Post created successfully!");
-      setCaption("");
-      setImageUrl("");
-      setCatId("");
-
-    } catch (err) {
-      console.error("Failed to post:", err);
-      setMessage("Error creating post.");
-    } finally {
-      setPosting(false);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text);
     }
-  };
+
+    setMessage("Post created successfully!");
+    setCaption("");
+    setImageUrl("");
+    setCatId("");
+  } catch (err) {
+    console.error("Failed to post:", err);
+    setMessage("Error creating post.");
+  } finally {
+    setPosting(false);
+  }
+};
 
   if (loading) {
     return (
