@@ -43,9 +43,15 @@ export async function logout() {
 
 function decodeJwtPayload(token: string): any | null {
   try {
-    const payload = token.split('.')[1];
-    const decoded = Buffer.from(payload, 'base64').toString('utf8');
-    return JSON.parse(decoded);
+    const base64Url = token.split('.')[1];
+    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
   } catch (err) {
     console.error("Failed to decode JWT:", err);
     return null;
@@ -62,7 +68,7 @@ export async function getUserId(): Promise<number | null> {
   return (
     payload.id ||
     payload.userId ||
-    Number(payload.sub) || 
+    Number(payload.sub) ||
     null
   );
 }
