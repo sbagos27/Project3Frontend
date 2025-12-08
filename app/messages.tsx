@@ -28,7 +28,7 @@ export default function MessagesScreen() {
         const allUsers = await getAllUsers();
         console.log('Fetched users:', allUsers);
         // Filter out self
-        setUsers(allUsers.filter(u => u.userId !== id));
+        setUsers(allUsers.filter(u => u.id !== id));
       }
     } catch (error) {
       console.error("Error loading messages data:", error);
@@ -48,7 +48,7 @@ export default function MessagesScreen() {
         </Text>
       </View>
       <View>
-        <Text style={styles.userName}>{item.username || `User ${item.userId}`}</Text>
+        <Text style={styles.userName}>{item.username || `User ${item.id}`}</Text>
         {item.email && <Text style={styles.userEmail}>{item.email}</Text>}
       </View>
     </TouchableOpacity>
@@ -91,7 +91,7 @@ export default function MessagesScreen() {
           </TouchableOpacity>
           <ChatInterface
             userId={currentUserId}
-            recipientId={selectedUser.userId}
+            recipientId={selectedUser.id}
             recipientName={selectedUser.username}
             wsUrl={WS_URL}
           />
@@ -108,7 +108,7 @@ export default function MessagesScreen() {
         <Text style={styles.title}>Messages</Text>
         <FlatList
           data={users}
-          keyExtractor={(item, index) => item.userId ? item.userId.toString() : `user-${index}`}
+          keyExtractor={(item, index) => item.id ? item.id.toString() : `user-${index}`}
           renderItem={renderUserItem}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={<Text style={styles.emptyText}>No other users found.</Text>}

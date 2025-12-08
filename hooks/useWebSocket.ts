@@ -4,6 +4,7 @@ import SockJS from 'sockjs-client';
 import { getJwt } from '../utils/auth';
 
 export interface ChatMessage {
+    id?: number; // Added for compatibility
     senderId: number;
     recipientId: number;
     content: string;
