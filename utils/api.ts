@@ -6,25 +6,28 @@ const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
 export interface User {
     id: number;
     username: string;
-    email?: string;
+    email: string;
     provider?: string;
+    providerId?: string;
 }
 
 export interface ChatMessage {
-    id?: number;
+    id: number;
     senderId: number;
     recipientId: number;
     content: string;
-    timestamp?: string;
+    createdAt: string;
 }
 
 export interface Post {
     id: number;
     caption?: string;
-    imageUrl?: string;
+    imageUrl: string;
     authorId: number;
     catId?: number;
-    createdAt?: string;
+    likesCount: number;
+    commentCount: number;
+    createdAt: string;
 }
 
 export interface Comment {
@@ -32,22 +35,24 @@ export interface Comment {
     postId: number;
     userId: number;
     content: string;
-    createdAt?: string;
+    createdAt: string;
 }
 
 export interface Like {
     id: number;
     postId: number;
     userId: number;
+    createdAt: string;
 }
 
 export interface Cat {
     id: number;
     name: string;
-    description?: string;
-    imageUrl?: string;
-    age?: number;
-    breed?: string;
+    bio?: string;
+    avatarUrl?: string;
+    birthdate?: string;
+    userId: number;
+    createdAt: string;
 }
 
 async function getAuthHeaders() {
