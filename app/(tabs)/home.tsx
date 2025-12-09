@@ -1,7 +1,7 @@
 // app/(tabs)/home.tsx
+import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView } from 'react-native';
-import { Image } from 'expo-image';
 
 import Header from '@/components/Header';
 import { ThemedText } from '@/components/themed-text';
@@ -15,9 +15,12 @@ type Post = {
   id: number;
   caption: string;
   imageUrl: string;
-  authorId?: number;
-  catId?: number;
+  authorId: number;
   createdAt?: string;
+  catId?: number;
+
+  // added on frontend after fetching username
+  username?: string;
 };
 
 export default function HomeScreen() {
@@ -25,8 +28,33 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch user info for each authorId
+  const fetchUsers = async (authorIds: number[], token: string) => {
+    const uniqueIds = [...new Set(authorIds)];
+    const userMap: Record<number, string> = {};
+
+    for (const id of uniqueIds) {
+      try {
+        const res = await fetch(`${BASE_URL}/api/users/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const user = await res.json();
+          userMap[id] = user.username;
+        } else {
+          userMap[id] = "Unknown User";
+        }
+      } catch (err) {
+        userMap[id] = "Unknown User";
+      }
+    }
+
+    return userMap;
+  };
+
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPostsAndUsers = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -37,8 +65,8 @@ export default function HomeScreen() {
           setLoading(false);
           return;
         }
-        console.log("TOKEN:",token);
 
+        // 1️⃣ Fetch Posts
         const res = await fetch(`${BASE_URL}/api/posts`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -47,12 +75,22 @@ export default function HomeScreen() {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Error ${res.status}: ${text}`);
+          throw new Error(`Error ${res.status}: ${await res.text()}`);
         }
 
-        const data = await res.json();
-        setPosts(data);
+        const postsData: Post[] = await res.json();
+
+        // 2️⃣ Fetch usernames for all authorIds
+        const authorIds = postsData.map((p) => p.authorId);
+        const userMap = await fetchUsers(authorIds, token);
+
+        // 3️⃣ Attach usernames to posts
+        const postsWithUsernames = postsData.map((post) => ({
+          ...post,
+          username: userMap[post.authorId] || "Unknown User",
+        }));
+
+        setPosts(postsWithUsernames);
       } catch (err: any) {
         console.error('Failed to load posts:', err);
         setError(err.message ?? 'Failed to load posts');
@@ -61,21 +99,21 @@ export default function HomeScreen() {
       }
     };
 
-    fetchPosts();
+    fetchPostsAndUsers();
   }, []);
 
   return (
     <>
-      {/* 🔹 Top bar: Whiskr left + two buttons right (from your Header component) */}
       <Header />
 
-      {/* 🔹 Scrollable feed content underneath */}
       <ScrollView>
         <ThemedView style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}>
+
           <ThemedView style={globalStyles.titleContainer}>
             <ThemedText type="title">Whiskr Feed</ThemedText>
           </ThemedView>
 
+          {/* Loading */}
           {loading && (
             <ThemedView style={globalStyles.centered}>
               <ActivityIndicator />
@@ -83,6 +121,7 @@ export default function HomeScreen() {
             </ThemedView>
           )}
 
+          {/* Error */}
           {error && !loading && (
             <ThemedView style={globalStyles.centered}>
               <ThemedText type="subtitle">Error</ThemedText>
@@ -90,28 +129,45 @@ export default function HomeScreen() {
             </ThemedView>
           )}
 
+          {/* No posts */}
           {!loading && !error && posts.length === 0 && (
             <ThemedView style={globalStyles.centered}>
               <ThemedText>No posts yet. Be the first to share a cat!</ThemedText>
             </ThemedView>
           )}
 
-          {!loading &&
-            !error &&
+          {/* Posts */}
+          {!loading && !error &&
             posts.map((post) => (
               <ThemedView key={post.id} style={globalStyles.postCard}>
+
+                {/* Username */}
+                <ThemedText
+                  type="subtitle"
+                  style={{ marginBottom: 8, fontWeight: '600' }}
+                >
+                  {post.username}
+                </ThemedText>
+
+                {/* Image with proper aspect ratio */}
                 {post.imageUrl && (
                   <Image
                     source={{ uri: post.imageUrl }}
-                    style={globalStyles.postImage}
+                    style={{
+                      width: '40%',
+                      aspectRatio: 1, // keeps image unsquished
+                      borderRadius: 12,
+                    }}
                     contentFit="cover"
                   />
                 )}
 
+                {/* Caption */}
                 <ThemedText type="subtitle" style={globalStyles.caption}>
                   {post.caption || 'No caption'}
                 </ThemedText>
 
+                {/* Date */}
                 {post.createdAt && (
                   <ThemedText style={globalStyles.metaText}>
                     Posted on {new Date(post.createdAt).toLocaleString()}
@@ -119,6 +175,7 @@ export default function HomeScreen() {
                 )}
               </ThemedView>
             ))}
+
         </ThemedView>
       </ScrollView>
     </>
