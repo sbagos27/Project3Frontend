@@ -101,28 +101,50 @@ export const globalStyles = StyleSheet.create({
     position: 'absolute',
   },
 
-  // ==== Feed / post card styles ====
+  // ==== Feed / post card styles (Instagram-like) ====
   postCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ccc',
+    marginBottom: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#efefef',
+    paddingBottom: 12,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  usernameText: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#262626',
   },
   postImage: {
-    width: '100%',
-    height: 220,
+    width: '40%',         // Very compact to ensure full post visibility on one screen
+    alignSelf: 'center',  // Center it
+    borderRadius: 12,
+    aspectRatio: 1,       // Square (1080x1080)
+    backgroundColor: '#f0f0f0',
+  },
+  postFooter: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  actionIconsFn: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    gap: 16,
   },
   caption: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#262626',
   },
   metaText: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    paddingTop: 4,
+    marginTop: 6,
     fontSize: 12,
-    opacity: 0.7,
+    color: '#8e8e8e',
   },
   headerBrandContainer: {
     paddingVertical: 30,

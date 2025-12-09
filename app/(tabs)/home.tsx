@@ -1,7 +1,7 @@
 // app/(tabs)/home.tsx
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import Header from '@/components/Header';
 import { ThemedText } from '@/components/themed-text';
@@ -141,38 +141,49 @@ export default function HomeScreen() {
             posts.map((post) => (
               <ThemedView key={post.id} style={globalStyles.postCard}>
 
-                {/* Username */}
-                <ThemedText
-                  type="subtitle"
-                  style={{ marginBottom: 8, fontWeight: '600' }}
-                >
-                  {post.username}
-                </ThemedText>
+                {/* Header: Username only */}
+                <View style={globalStyles.postHeader}>
+                  <ThemedText style={globalStyles.usernameText}>
+                    {post.username || 'Unknown User'}
+                  </ThemedText>
+                </View>
 
-                {/* Image with proper aspect ratio */}
+                {/* Main Media: Full width image */}
                 {post.imageUrl && (
                   <Image
                     source={{ uri: post.imageUrl }}
-                    style={{
-                      width: '40%',
-                      aspectRatio: 1, // keeps image unsquished
-                      borderRadius: 12,
-                    }}
+                    style={globalStyles.postImage}
                     contentFit="cover"
                   />
                 )}
 
-                {/* Caption */}
-                <ThemedText type="subtitle" style={globalStyles.caption}>
-                  {post.caption || 'No caption'}
-                </ThemedText>
+                {/* Footer: Actions (placeholder), Caption, Date */}
+                <View style={globalStyles.postFooter}>
 
-                {/* Date */}
-                {post.createdAt && (
-                  <ThemedText style={globalStyles.metaText}>
-                    Posted on {new Date(post.createdAt).toLocaleString()}
+                  {/* Action Icons (Heart, Comment, Share) - Placeholders for visual fidelity */}
+                  <View style={globalStyles.actionIconsFn}>
+                    {/* Using simple text or placeholders since we might not have icons imported yet, 
+                        but relying on globalStyles.actionIconsFn to layout them out if we did. 
+                        For now, just keeping clean spacing. */}
+                  </View>
+
+                  {/* Caption Row */}
+                  <ThemedText style={globalStyles.caption}>
+                    <ThemedText style={{ fontWeight: '700', color: '#000' }}>{post.username} </ThemedText>
+                    {post.caption}
                   </ThemedText>
-                )}
+
+                  {/* Date */}
+                  {post.createdAt && (
+                    <ThemedText style={globalStyles.metaText}>
+                      {new Date(post.createdAt).toLocaleDateString(undefined, {
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </ThemedText>
+                  )}
+                </View>
+
               </ThemedView>
             ))}
 
