@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 const CAT_KEY = 'selectedCatId';
 
 export async function getJwt() {
-  if (Platform.OS === "web") {
+    if (Platform.OS === "web") {
     return window.localStorage.getItem("jwt");
   }
   return await SecureStore.getItemAsync("jwt");

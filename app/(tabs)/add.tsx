@@ -36,7 +36,7 @@ export default function AddScreen() {
     loadToken();
   }, []);
 
- const handleCreatePost = async () => {
+const handleCreatePost = async () => {
   try {
     setPosting(true);
     setMessage(null);
