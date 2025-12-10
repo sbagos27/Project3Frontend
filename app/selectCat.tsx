@@ -11,18 +11,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { getJwt, getSelectedCatId, setSelectedCatId } from '@/utils/auth';
+import { Cat, getCurrentUser } from '@/utils/api';
 
 const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
-
-type Cat = {
-  id: number;
-  name: string;
-  bio?: string | null;
-  avatarUrl?: string | null;
-  birthdate?: string | null;
-};
 
 export default function SelectCatScreen() {
   const [token, setToken] = useState<string | null>(null);
@@ -33,6 +27,7 @@ export default function SelectCatScreen() {
   const [newName, setNewName] = useState('');
   const [newBio, setNewBio] = useState('');
 
+  // Load token + cats
   useEffect(() => {
     const init = async () => {
       try {
@@ -59,7 +54,8 @@ export default function SelectCatScreen() {
         const data: Cat[] = await res.json();
         setCats(data);
 
-        // (Optional) if a cat is already selected, highlight it visually later
+        // If a cat is already selected we don’t need it yet,
+        // but this keeps the selection consistent.
         await getSelectedCatId();
       } catch (err: any) {
         console.error('Failed to load cats:', err);
@@ -84,16 +80,33 @@ export default function SelectCatScreen() {
 
   const handleCreateCat = async () => {
     if (!token) return;
-    if (!newName.trim()) {
+
+    const trimmedName = newName.trim();
+    const trimmedBio = newBio.trim();
+
+    if (!trimmedName) {
       Alert.alert('Name required', 'Please give your cat a name.');
       return;
     }
 
     try {
-      const body = JSON.stringify({
-        name: newName.trim(),
-        bio: newBio.trim() || null,
-      });
+      // We need userId for the backend -> get it from /api/users/me
+      const user = await getCurrentUser();
+      if (!user) {
+        Alert.alert(
+          'Error',
+          'Could not load your user info. Please sign in again.',
+        );
+        return;
+      }
+
+      const payload: any = {
+        name: trimmedName,
+        userId: user.id, // <<< important: fixes 500 on /api/cats
+      };
+      if (trimmedBio) {
+        payload.bio = trimmedBio;
+      }
 
       const res = await fetch(`${BASE_URL}/api/cats`, {
         method: 'POST',
@@ -101,7 +114,7 @@ export default function SelectCatScreen() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -112,7 +125,7 @@ export default function SelectCatScreen() {
       const created: Cat = await res.json();
       setCats((prev) => [...prev, created]);
 
-      // Immediately select the new cat.
+      // Immediately select the new cat and go back to Account
       await setSelectedCatId(created.id);
       router.replace('/(tabs)/account');
     } catch (err: any) {
@@ -140,6 +153,22 @@ export default function SelectCatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Custom header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerBackButton}
+          onPress={() => router.replace('/(tabs)/account')}
+        >
+          <MaterialIcons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Select a cat</Text>
+
+        {/* Spacer to balance the back button */}
+        <View style={{ width: 22 }} />
+      </View>
+
+      {/* Main content */}
       <Text style={styles.title}>Choose your cat</Text>
 
       {cats.length === 0 ? (
@@ -200,9 +229,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 0,
     paddingBottom: 32,
     backgroundColor: '#fff',
+  },
+  header: {
+    height: 56,
+    backgroundColor: '#000',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  headerBackButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
   title: {
     fontSize: 22,
