@@ -41,14 +41,14 @@ export default function TabLayout() {
         name="clips"
         options={{
           title: 'Clips',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="cat.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="video.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="cat.fill" color={color} />,
         }}
       />
     </Tabs>
