@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -26,10 +27,8 @@ import { getJwt, getSelectedCatId } from '@/utils/auth';
 import {
   getCurrentUser,
   getPostsByCat,
-  getCat,
   User as ApiUser,
   Post as ApiPost,
-  Cat as ApiCat,
 } from '@/utils/api';
 
 const COLS = 3;
@@ -46,11 +45,6 @@ export default function ProfileScreen() {
   // Selected cat
   const [selectedCatId, setSelectedCatIdState] = useState<number | null>(null);
   const [catLoading, setCatLoading] = useState(true);
-
-  // Active cat details (NEW)
-  const [activeCat, setActiveCat] = useState<ApiCat | null>(null);
-  const [catDetailsLoading, setCatDetailsLoading] = useState(false);
-  const [catError, setCatError] = useState<string | null>(null);
 
   // User
   const [user, setUser] = useState<ApiUser | null>(null);
@@ -160,37 +154,6 @@ export default function ProfileScreen() {
     loadPosts(selectedCatId);
   }, [token, selectedCatId, loadPosts]);
 
-  // 5) Load active cat details (name, etc.) – NEW
-  useEffect(() => {
-    if (!token || selectedCatId == null) {
-      setActiveCat(null);
-      return;
-    }
-
-    const loadCatDetails = async () => {
-      try {
-        setCatDetailsLoading(true);
-        setCatError(null);
-
-        const cat = await getCat(selectedCatId);
-        if (!cat) {
-          setCatError('Failed to load cat.');
-          setActiveCat(null);
-        } else {
-          setActiveCat(cat);
-        }
-      } catch (err: any) {
-        console.error('Failed to load cat details:', err);
-        setCatError(err.message || 'Failed to load cat.');
-        setActiveCat(null);
-      } finally {
-        setCatDetailsLoading(false);
-      }
-    };
-
-    loadCatDetails();
-  }, [token, selectedCatId]);
-
   // Pull-to-refresh
   const onRefresh = useCallback(async () => {
     if (!token || selectedCatId == null) return;
@@ -207,11 +170,7 @@ export default function ProfileScreen() {
         <View style={styles.catBar}>
           <Text style={styles.catBarText}>
             Active cat:{' '}
-            {activeCat
-              ? activeCat.name
-              : selectedCatId != null
-              ? `#${selectedCatId}`
-              : 'none selected'}
+            {selectedCatId != null ? `#${selectedCatId}` : 'none selected'}
           </Text>
           <TouchableOpacity
             style={styles.changeCatButton}
@@ -222,14 +181,6 @@ export default function ProfileScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {catError ? (
-          <View style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
-            <Text style={{ fontSize: 12, color: 'red' }}>
-              {catError}
-            </Text>
-          </View>
-        ) : null}
 
         {/* User info */}
         {!user ? (
@@ -281,7 +232,7 @@ export default function ProfileScreen() {
         )}
       </View>
     ),
-    [user, selectedCatId, posts.length, activeCat, catError],
+    [user, selectedCatId, posts.length],
   );
 
   // Grid item renderer
@@ -302,7 +253,7 @@ export default function ProfileScreen() {
 
   // ---------- Gating & error handling ----------
 
-  if (authLoading || catLoading || userLoading || postsLoading || catDetailsLoading) {
+  if (authLoading || catLoading || userLoading || postsLoading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator />
