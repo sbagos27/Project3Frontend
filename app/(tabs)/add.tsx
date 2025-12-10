@@ -1,27 +1,36 @@
 // app/(tabs)/add.tsx
+// npm install expo-image-picker
+// use above if errors
 import { globalStyles } from '@/styles/globalStyle';
 import { getJwt, getUserId, logout } from '@/utils/auth';
+import * as ImagePicker from "expo-image-picker";
 import { router } from 'expo-router';
+
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
+
+const uriToBlob = async (uri: string) => {
+  const res = await fetch(uri);
+  return await res.blob();
+};
 
 export default function AddScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // form fields
   const [caption, setCaption] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
   const [catId, setCatId] = useState('');
+  const [imageFile, setImageFile] = useState<any>(null);
 
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -32,52 +41,66 @@ export default function AddScreen() {
       setToken(t);
       setLoading(false);
     };
-
     loadToken();
   }, []);
 
- const handleCreatePost = async () => {
-  try {
-    setPosting(true);
-    setMessage(null);
-
-    const userId = await getUserId();
-
-    // EXACT format expected by your backend
-    const body = {
-      authorId: userId,
-      caption: caption,
-      imageUrl: imageUrl,
-      likesCount: 0,
-      commentCount: 0,
-      catId: Number(catId),
-    };
-
-    const res = await fetch(`${BASE_URL}/api/posts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text);
+    if (!result.canceled) {
+      setImageFile(result.assets[0]);
     }
+  };
 
-    setMessage("Post created successfully!");
-    setCaption("");
-    setImageUrl("");
-    setCatId("");
-  } catch (err) {
-    console.error("Failed to post:", err);
-    setMessage("Error creating post.");
-  } finally {
-    setPosting(false);
-  }
-};
+  const handleCreatePost = async () => {
+    try {
+      setPosting(true);
+      setMessage(null);
+
+      const userId = await getUserId();
+      if (!userId) throw new Error("User ID missing");
+      if (!imageFile) {
+        setMessage("Please select an image first.");
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("caption", caption);
+      formData.append("authorId", String(userId));
+      formData.append("catId", String(catId));
+
+      const fileBlob = await uriToBlob(imageFile.uri);
+      formData.append("file", fileBlob, "upload.jpg");
+
+      const res = await fetch(`${BASE_URL}/api/posts`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t);
+      }
+
+      setMessage("Post created successfully!");
+      setCaption("");
+      setCatId("");
+      setImageFile(null);
+
+    } catch (err) {
+      console.error("Failed to post:", err);
+      setMessage("Error creating post.");
+    } finally {
+      setPosting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -100,17 +123,21 @@ export default function AddScreen() {
     <View style={globalStyles.container}>
       <Text style={globalStyles.title}>Create New Post</Text>
 
+      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+        <Text style={styles.imageButtonText}>Select Image</Text>
+      </TouchableOpacity>
+
+      {imageFile && (
+        <Image
+          source={{ uri: imageFile.uri }}
+          style={{ width: 200, height: 200, marginTop: 10, borderRadius: 10 }}
+        />
+      )}
+
       <TextInput
         placeholder="Caption"
         value={caption}
         onChangeText={setCaption}
-        style={styles.input}
-      />
-
-      <TextInput
-        placeholder="Image URL"
-        value={imageUrl}
-        onChangeText={setImageUrl}
         style={styles.input}
       />
 
@@ -153,6 +180,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     backgroundColor: "#f0f0f0",
     borderRadius: 10,
+  },
+  imageButton: {
+    marginTop: 20,
+    backgroundColor: "#888",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  imageButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
   postButton: {
     marginTop: 20,
