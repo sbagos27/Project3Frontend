@@ -29,7 +29,7 @@ import {
   getCurrentUser,
   getPostsByCat,
 } from '@/utils/api';
-import { getJwt, getSelectedCatId } from '@/utils/auth';
+import { getJwt, getSelectedCatId, logout } from '@/utils/auth';
 
 const COLS = 3;
 const GAP = 3;
@@ -218,14 +218,25 @@ export default function ProfileScreen() {
                 ? `#${selectedCatId}`
                 : 'none selected'}
           </Text>
-          <TouchableOpacity
-            style={styles.changeCatButton}
-            onPress={() => router.push('/selectCat')}
-          >
-            <Text style={styles.changeCatButtonText}>
-              {selectedCatId ? 'Change' : 'Choose cat'}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.changeCatButton}
+              onPress={() => router.push('/selectCat')}
+            >
+              <Text style={styles.changeCatButtonText}>
+                {selectedCatId ? 'Change cat' : 'Choose cat'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={async () => {
+                await logout();
+                router.replace('/signIn');
+              }}
+            >
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* User info */}
@@ -560,6 +571,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f2f2f2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoutButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    backgroundColor: '#ff3b30',
+  },
+  logoutText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 
