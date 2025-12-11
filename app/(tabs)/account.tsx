@@ -1,3 +1,5 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { router } from 'expo-router';
 import React, {
   useCallback,
   useEffect,
@@ -5,31 +7,29 @@ import React, {
   useState,
 } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  SafeAreaView,
-  TouchableOpacity,
-  StyleSheet,
-  RefreshControl,
+  ActivityIndicator,
   Dimensions,
+  FlatList,
+  Image,
   ListRenderItem,
   Modal,
-  ActivityIndicator,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { router } from 'expo-router';
 
 import PostCard from '@/components/post-card';
-import { getJwt, getSelectedCatId } from '@/utils/auth';
 import {
+  Cat as ApiCat,
+  Post as ApiPost,
+  User as ApiUser,
   getCurrentUser,
   getPostsByCat,
-  User as ApiUser,
-  Post as ApiPost,
-  Cat as ApiCat,
 } from '@/utils/api';
+import { getJwt, getSelectedCatId } from '@/utils/auth';
 
 const COLS = 3;
 const GAP = 3;
@@ -145,7 +145,10 @@ export default function ProfileScreen() {
         setUserLoading(true);
         setUserError(null);
 
+        console.log('Loading user with token:', token.substring(0, 20) + '...');
         const u = await getCurrentUser();
+        console.log('User loaded:', u);
+
         if (!u) {
           setUserError('Failed to load user.');
         } else {
@@ -155,6 +158,7 @@ export default function ProfileScreen() {
         console.error('Failed to load user:', err);
         setUserError(err.message || 'Failed to load user.');
       } finally {
+        console.log('User loading complete');
         setUserLoading(false);
       }
     };
@@ -169,12 +173,17 @@ export default function ProfileScreen() {
         setPostsLoading(true);
         setPostsError(null);
 
+        console.log('Loading posts for cat:', catId);
         const catPosts = await getPostsByCat(catId);
+        console.log('Posts loaded:', catPosts.length);
         setPosts(catPosts);
       } catch (err: any) {
         console.error('Failed to load posts:', err);
         setPostsError(err.message || 'Failed to load posts.');
+        // Still set posts to empty array so we don't get stuck
+        setPosts([]);
       } finally {
+        console.log('Posts loading complete');
         setPostsLoading(false);
       }
     },
@@ -206,8 +215,8 @@ export default function ProfileScreen() {
             {activeCat
               ? activeCat.name
               : selectedCatId != null
-              ? `#${selectedCatId}`
-              : 'none selected'}
+                ? `#${selectedCatId}`
+                : 'none selected'}
           </Text>
           <TouchableOpacity
             style={styles.changeCatButton}
@@ -289,11 +298,12 @@ export default function ProfileScreen() {
 
   // ---------- Gating & error handling ----------
 
-  if (authLoading || catLoading || userLoading || postsLoading) {
+  // First check auth
+  if (authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator />
-        <Text style={{ marginTop: 8 }}>Loading your profile…</Text>
+        <Text style={{ marginTop: 8 }}>Loading auth…</Text>
       </SafeAreaView>
     );
   }
@@ -306,10 +316,30 @@ export default function ProfileScreen() {
     );
   }
 
+  // Then check cat selection
+  if (catLoading) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator />
+        <Text style={{ marginTop: 8 }}>Loading cat selection…</Text>
+      </SafeAreaView>
+    );
+  }
+
   // Signed in but no cat yet: go to selectCat screen
   if (selectedCatId == null) {
     router.replace('/selectCat');
     return null;
+  }
+
+  // Finally check user/posts (only if we have a cat)
+  if (userLoading || postsLoading) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator />
+        <Text style={{ marginTop: 8 }}>Loading your profile…</Text>
+      </SafeAreaView>
+    );
   }
 
   if (userError || postsError) {

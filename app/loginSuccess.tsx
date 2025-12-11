@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
-import { ActivityIndicator, View, Text, Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 
 export default function LoginSuccess() {
   const { token } = useLocalSearchParams<{ token?: string | string[] }>();
@@ -25,7 +25,7 @@ export default function LoginSuccess() {
           // WEB: store token in localStorage and hard-redirect to /home
           if (typeof window !== "undefined") {
             window.localStorage.setItem("jwt", tokenString);
-            window.location.href = "/home"; // ⬅️ CHANGED from "/" to "/home"
+            window.location.href = "/home";
           }
         } else {
           // NATIVE: use SecureStore + expo-router
