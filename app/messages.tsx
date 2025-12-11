@@ -39,7 +39,6 @@ export default function MessagesScreen() {
 
       if (id) {
         const usersWithHistory = await getUsersWithMessageHistory(id);
-        console.log('Fetched users with message history:', usersWithHistory);
         setUsers(usersWithHistory);
       }
     } catch (error) {
