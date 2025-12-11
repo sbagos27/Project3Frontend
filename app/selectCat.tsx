@@ -12,7 +12,10 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+
 import { getJwt, getSelectedCatId, setSelectedCatId } from '@/utils/auth';
+import { Cat, getCurrentUser } from '@/utils/api';
 
 const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
 
@@ -52,8 +55,7 @@ export default function SelectCatScreen() {
         const data: Cat[] = await res.json();
         setCats(data);
 
-        // If a cat is already selected we don’t need it yet,
-        // but this keeps the selection consistent.
+        // Keep selection consistent if one was already stored
         await getSelectedCatId();
       } catch (err: any) {
         console.error('Failed to load cats:', err);
@@ -100,7 +102,7 @@ export default function SelectCatScreen() {
 
       const payload: any = {
         name: trimmedName,
-        userId: user.id, // <<< important: fixes 500 on /api/cats
+        userId: user.id, // fixes 500 on /api/cats
       };
       if (trimmedBio) {
         payload.bio = trimmedBio;
@@ -112,7 +114,7 @@ export default function SelectCatScreen() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body,
+        body: JSON.stringify(payload), // <-- fixed
       });
 
       if (!res.ok) {
@@ -304,3 +306,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
