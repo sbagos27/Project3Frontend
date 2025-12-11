@@ -33,14 +33,10 @@ export function useWebSocket({ userId, wsUrl }: UseWebSocketProps) {
                 connectHeaders: {
                     Authorization: `Bearer ${token}`,
                 },
-                debug: (str) => {
-                    console.log('STOMP Debug:', str);
-                },
                 reconnectDelay: 5000,
                 heartbeatIncoming: 4000,
                 heartbeatOutgoing: 4000,
                 onConnect: () => {
-                    console.log('Connected to WebSocket');
                     setConnected(true);
 
                     // Subscribe to private messages for this user

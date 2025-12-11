@@ -4,7 +4,6 @@
 import { globalStyles } from '@/styles/globalStyle';
 import { getJwt, getUserId } from '@/utils/auth';
 import * as ImagePicker from "expo-image-picker";
-import { router } from 'expo-router';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -191,8 +190,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   postButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    textAlign: "center",
+    color: '#fff',
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
