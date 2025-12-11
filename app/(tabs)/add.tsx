@@ -1,14 +1,18 @@
 // app/(tabs)/add.tsx
 // npm install expo-image-picker
 // use above if errors
-import { globalStyles } from '@/styles/globalStyle';
+import { Cat, getCatsByUser, getCurrentUser } from '@/utils/api';
 import { getJwt, getUserId } from '@/utils/auth';
 import * as ImagePicker from "expo-image-picker";
+import { router } from 'expo-router';
 
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -28,24 +32,37 @@ export default function AddScreen() {
   const [loading, setLoading] = useState(true);
 
   const [caption, setCaption] = useState('');
-  const [catId, setCatId] = useState('');
+  const [catId, setCatId] = useState<number | null>(null);
+  const [cats, setCats] = useState<Cat[]>([]);
   const [imageFile, setImageFile] = useState<any>(null);
 
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadToken = async () => {
+    const loadData = async () => {
       const t = await getJwt();
       setToken(t);
+
+      if (t) {
+        try {
+          const user = await getCurrentUser();
+          if (user) {
+            const userCats = await getCatsByUser(user.id);
+            setCats(userCats);
+          }
+        } catch (err) {
+          console.error("Failed to load cats", err);
+        }
+      }
       setLoading(false);
     };
-    loadToken();
+    loadData();
   }, []);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 1,
     });
 
@@ -63,6 +80,10 @@ export default function AddScreen() {
       if (!userId) throw new Error("User ID missing");
       if (!imageFile) {
         setMessage("Please select an image first.");
+        return;
+      }
+      if (!catId) {
+        setMessage("Please select a cat.");
         return;
       }
 
@@ -90,8 +111,12 @@ export default function AddScreen() {
 
       setMessage("Post created successfully!");
       setCaption("");
-      setCatId("");
+      setCatId(null);
       setImageFile(null);
+
+      setTimeout(() => {
+        router.replace('/(tabs)/home');
+      }, 2000);
 
     } catch (err) {
       console.error("Failed to post:", err);
@@ -103,95 +128,226 @@ export default function AddScreen() {
 
   if (loading) {
     return (
-      <View style={globalStyles.container}>
+      <SafeAreaView style={styles.centered}>
         <ActivityIndicator />
         <Text style={{ marginTop: 8 }}>Checking your session…</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!token) {
     return (
-      <View style={globalStyles.container}>
+      <SafeAreaView style={styles.centered}>
         <Text>You must sign in first.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={globalStyles.container}>
-      <Text style={globalStyles.title}>Create New Post</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Create New Post</Text>
 
-      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-        <Text style={styles.imageButtonText}>Select Image</Text>
-      </TouchableOpacity>
+          {!imageFile ? (
+            <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+              <Text style={styles.imageButtonText}>Select Image</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={pickImage}>
+              <Image
+                source={{ uri: imageFile.uri }}
+                style={styles.previewImage}
+              />
+            </TouchableOpacity>
+          )}
 
-      {imageFile && (
-        <Image
-          source={{ uri: imageFile.uri }}
-          style={{ width: 200, height: 200, marginTop: 10, borderRadius: 10 }}
-        />
-      )}
+          <TextInput
+            placeholder="Caption"
+            value={caption}
+            onChangeText={setCaption}
+            style={styles.input}
+          />
 
-      <TextInput
-        placeholder="Caption"
-        value={caption}
-        onChangeText={setCaption}
-        style={styles.input}
-      />
+          <Text style={styles.label}>Select a Cat:</Text>
+          <View style={styles.catListContainer}>
+            <FlatList
+              data={cats}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.catOption,
+                    catId === item.id && styles.catOptionSelected
+                  ]}
+                  onPress={() => setCatId(item.id)}
+                >
+                  {item.avatarUrl ? (
+                    <Image source={{ uri: item.avatarUrl }} style={styles.catAvatar} />
+                  ) : (
+                    <View style={styles.catAvatarPlaceholder}>
+                      <Text style={styles.catAvatarText}>
+                        {item.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={[styles.catName, catId === item.id && styles.catNameSelected]} numberOfLines={1}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={{ paddingHorizontal: 4 }}
+            />
+          </View>
 
-      <TextInput
-        placeholder="Category ID"
-        value={catId}
-        onChangeText={setCatId}
-        keyboardType="numeric"
-        style={styles.input}
-      />
+          <TouchableOpacity
+            style={styles.postButton}
+            onPress={handleCreatePost}
+            disabled={posting}
+          >
+            <Text style={styles.postButtonText}>
+              {posting ? "Posting..." : "Create Post"}
+            </Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.postButton}
-        onPress={handleCreatePost}
-        disabled={posting}
-      >
-        <Text style={styles.postButtonText}>
-          {posting ? "Posting..." : "Create Post"}
-        </Text>
-      </TouchableOpacity>
-
-      {message && <Text style={{ marginTop: 10 }}>{message}</Text>}
-    </View>
+          {message && <Text style={styles.messageText}>{message}</Text>}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   input: {
-    width: "90%",
+    width: "100%",
     padding: 12,
     marginTop: 12,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#fafafa",
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 10,
   },
   imageButton: {
-    marginTop: 20,
-    backgroundColor: "#888",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  imageButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  postButton: {
-    marginTop: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#666",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  imageButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  previewImage: {
+    width: 200,
+    height: 200,
+    marginTop: 10,
+    borderRadius: 10,
+    alignSelf: 'center',
+  },
+  postButton: {
+    marginTop: 24,
+    backgroundColor: "#007AFF",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   postButtonText: {
     color: '#fff',
     fontWeight: '700',
-    textAlign: 'center',
+    fontSize: 16,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  catListContainer: {
+    height: 110,
+    width: '100%',
+  },
+  catOption: {
+    alignItems: 'center',
+    marginRight: 12,
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: '#f9f9f9',
+    width: 80,
+  },
+  catOptionSelected: {
+    borderColor: '#007AFF',
+    backgroundColor: '#eef6ff',
+  },
+  catAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: 5,
+  },
+  catAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
+  },
+  catAvatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  catName: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#333',
+  },
+  catNameSelected: {
+    color: '#007AFF',
+    fontWeight: 'bold',
+  },
+  messageText: {
+    marginTop: 16,
+    textAlign: 'center',
+    color: '#333',
+  }
 });

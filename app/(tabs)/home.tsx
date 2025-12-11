@@ -6,14 +6,15 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import Header from '@/components/Header';
 import { ThemedText } from '@/components/themed-text';
 import { brandColor, globalStyles } from '@/styles/globalStyle';
-import { Post as ApiPost, getAllPosts, getAllUsers } from '@/utils/api';
+import { Post as ApiPost, Cat, getAllCats, getAllPosts, getAllUsers } from '@/utils/api';
 
-type PostWithUsername = ApiPost & {
+type PostWithDetails = ApiPost & {
   username?: string;
+  cat?: Cat;
 };
 
 export default function HomeScreen() {
-  const [posts, setPosts] = useState<PostWithUsername[]>([]);
+  const [posts, setPosts] = useState<PostWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,13 +40,21 @@ export default function HomeScreen() {
           userMap[user.id] = user.username;
         });
 
-        // Attach usernames to posts
-        const postsWithUsernames = postsData.map((post) => ({
+        // Fetch all cats to map cat details
+        const allCats = await getAllCats();
+        const catMap: Record<number, Cat> = {};
+        allCats.forEach(cat => {
+          catMap[cat.id] = cat;
+        });
+
+        // Attach usernames and cats to posts
+        const postsWithDetails = postsData.map((post) => ({
           ...post,
           username: userMap[post.authorId] || "Unknown User",
+          cat: post.catId ? catMap[post.catId] : undefined,
         }));
 
-        setPosts(postsWithUsernames);
+        setPosts(postsWithDetails);
       } catch (err: any) {
         console.error('Failed to load posts:', err);
         setError(err.message ?? 'Failed to load posts');
@@ -92,11 +101,22 @@ export default function HomeScreen() {
             posts.map((post) => (
               <View key={post.id} style={styles.postCard}>
 
-                {/* Header: Username only */}
+                {/* Header: Cat info */}
                 <View style={styles.postHeader}>
-                  <ThemedText style={globalStyles.usernameText}>
-                    {post.username || 'Unknown User'}
-                  </ThemedText>
+                  {post.cat?.avatarUrl ? (
+                    <Image source={{ uri: post.cat.avatarUrl }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <ThemedText style={styles.avatarPlaceholderText}>
+                        {(post.cat?.name || post.username || '?').charAt(0).toUpperCase()}
+                      </ThemedText>
+                    </View>
+                  )}
+                  <View>
+                    <ThemedText style={globalStyles.usernameText}>
+                      {post.cat?.name || post.username || 'Unknown'}
+                    </ThemedText>
+                  </View>
                 </View>
 
                 {/* Main Media: Full width image */}
@@ -120,7 +140,9 @@ export default function HomeScreen() {
 
                   {/* Caption Row */}
                   <ThemedText style={globalStyles.caption}>
-                    <ThemedText style={{ fontWeight: '700', color: '#000' }}>{post.username} </ThemedText>
+                    <ThemedText style={{ fontWeight: '700', color: '#000' }}>
+                      {post.username}
+                    </ThemedText>{' '}
                     {post.caption}
                   </ThemedText>
 
@@ -183,5 +205,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  avatarPlaceholderText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  subText: {
+    fontSize: 12,
+    color: '#666',
   },
 });
