@@ -1,4 +1,6 @@
 // app/selectCat.tsx
+import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,11 +13,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
 
-import { getJwt, getSelectedCatId, setSelectedCatId, logout } from '@/utils/auth';
 import { Cat, getCurrentUser } from '@/utils/api';
+import { getJwt, getSelectedCatId, setSelectedCatId } from '@/utils/auth';
 
 const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
 
@@ -215,26 +215,6 @@ export default function SelectCatScreen() {
 
       <TouchableOpacity style={styles.primaryButton} onPress={handleCreateCat}>
         <Text style={styles.primaryButtonText}>Save cat</Text>
-      </TouchableOpacity>
-
-      {/* Logout button at bottom */}
-      <TouchableOpacity
-        style={{
-          marginTop: 24,
-          backgroundColor: '#ff3b30',
-          paddingVertical: 10,
-          paddingHorizontal: 20,
-          borderRadius: 10,
-          alignSelf: 'center',
-        }}
-        onPress={async () => {
-          await logout();
-          router.replace('/signIn');
-        }}
-      >
-        <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
-          Logout
-        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
