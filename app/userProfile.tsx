@@ -134,8 +134,6 @@ export default function UserProfileScreen() {
 
                     <View style={styles.statsRow}>
                         <Stat num={posts.length} label="Posts" />
-                        <Stat num={0} label="Followers" />
-                        <Stat num={0} label="Following" />
                     </View>
                 </View>
 
@@ -152,12 +150,24 @@ export default function UserProfileScreen() {
 
                 {/* Action buttons */}
                 <View style={styles.buttonsRow}>
-                    <Button text="Follow" />
-                    <Button text="Message" />
+                    <Button
+                        text="Message"
+                        onPress={() => {
+                            if (userId && username) {
+                                router.push({
+                                    pathname: '/messages',
+                                    params: {
+                                        selectedUserId: userId,
+                                        selectedUsername: username,
+                                    },
+                                });
+                            }
+                        }}
+                    />
                 </View>
             </View>
         ),
-        [username, email, provider, posts.length],
+        [username, email, provider, posts.length, userId],
     );
 
     // Grid item renderer
@@ -286,11 +296,11 @@ function Stat({ num, label }: { num: number; label: string }) {
     );
 }
 
-function Button({ text }: { text: string }) {
+function Button({ text, onPress }: { text: string; onPress?: () => void }) {
     return (
-        <View style={styles.btn}>
+        <TouchableOpacity style={styles.btn} onPress={onPress}>
             <Text style={styles.btnText}>{text}</Text>
-        </View>
+        </TouchableOpacity>
     );
 }
 

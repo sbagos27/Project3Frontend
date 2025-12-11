@@ -307,3 +307,35 @@ export async function getChatHistory(otherUserId: number): Promise<ChatMessage[]
         return [];
     }
 }
+
+/**
+ * Get all users that the current user has message history with
+ * by checking chat history for each user
+ */
+export async function getUsersWithMessageHistory(currentUserId: number): Promise<User[]> {
+    try {
+        // Get all users first
+        const allUsers = await getAllUsers();
+
+        // Filter out the current user
+        const otherUsers = allUsers.filter(u => u.id !== currentUserId);
+
+        // Check each user for message history in parallel
+        const usersWithHistory = await Promise.all(
+            otherUsers.map(async (user) => {
+                try {
+                    const messages = await getChatHistory(user.id);
+                    return messages.length > 0 ? user : null;
+                } catch {
+                    return null;
+                }
+            })
+        );
+
+        // Filter out null values (users with no message history)
+        return usersWithHistory.filter((user): user is User => user !== null);
+    } catch (error) {
+        console.error('Error fetching users with message history:', error);
+        return [];
+    }
+}
