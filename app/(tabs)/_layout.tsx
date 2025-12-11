@@ -37,13 +37,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="clips"
-        options={{
-          title: 'Clips',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="video.fill" color={color} />,
-        }}
-      />
+      
       <Tabs.Screen
         name="account"
         options={{
