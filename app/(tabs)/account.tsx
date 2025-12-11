@@ -210,14 +210,34 @@ export default function ProfileScreen() {
       <View>
         {/* Active cat bar */}
         <View style={styles.catBar}>
-          <Text style={styles.catBarText}>
-            Active cat:{' '}
-            {activeCat
-              ? activeCat.name
-              : selectedCatId != null
-                ? `#${selectedCatId}`
-                : 'none selected'}
-          </Text>
+          <View style={styles.catInfoSection}>
+            {/* Cat avatar */}
+            {activeCat?.avatarUrl ? (
+              <Image
+                source={{ uri: activeCat.avatarUrl }}
+                style={styles.catAvatar}
+              />
+            ) : (
+              <View style={styles.catAvatarPlaceholder}>
+                <Text style={styles.catAvatarText}>
+                  {activeCat?.name?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
+
+            {/* Cat name and bio */}
+            <View style={styles.catTextInfo}>
+              <Text style={styles.activeCatName}>
+                {activeCat ? activeCat.name : selectedCatId != null ? `Cat #${selectedCatId}` : 'No cat selected'}
+              </Text>
+              {activeCat?.bio && (
+                <Text style={styles.activeCatBio} numberOfLines={1}>
+                  {activeCat.bio}
+                </Text>
+              )}
+            </View>
+          </View>
+
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={styles.changeCatButton}
@@ -462,13 +482,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 12,
+    paddingBottom: 12,
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  catBarText: {
-    fontSize: 14,
-    color: '#555',
+  catInfoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  catAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#eee',
+  },
+  catAvatarPlaceholder: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#f2f2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#888',
+  },
+  catTextInfo: {
+    flex: 1,
+  },
+  activeCatName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222',
+  },
+  activeCatBio: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   changeCatButton: {
     paddingHorizontal: 10,
