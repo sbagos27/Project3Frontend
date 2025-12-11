@@ -1,8 +1,8 @@
 import Header from '@/components/activityHeader';
 import ChatInterface from '@/components/ChatInterface';
-import { getAllUsers, User } from '@/utils/api';
+import { getUsersWithMessageHistory, User } from '@/utils/api';
 import { getUserId } from '@/utils/auth';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -10,6 +10,7 @@ const WS_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com/ws';
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -19,16 +20,27 @@ export default function MessagesScreen() {
     loadData();
   }, []);
 
+  // Handle incoming user selection from params
+  useEffect(() => {
+    if (params.selectedUserId && params.selectedUsername) {
+      const user: User = {
+        id: Number(params.selectedUserId),
+        username: params.selectedUsername as string,
+        email: '',
+      };
+      setSelectedUser(user);
+    }
+  }, [params.selectedUserId, params.selectedUsername]);
+
   const loadData = async () => {
     try {
       const id = await getUserId();
       setCurrentUserId(id);
 
       if (id) {
-        const allUsers = await getAllUsers();
-        console.log('Fetched users:', allUsers);
-        // Filter out self
-        setUsers(allUsers.filter(u => u.id !== id));
+        const usersWithHistory = await getUsersWithMessageHistory(id);
+        console.log('Fetched users with message history:', usersWithHistory);
+        setUsers(usersWithHistory);
       }
     } catch (error) {
       console.error("Error loading messages data:", error);
@@ -111,7 +123,14 @@ export default function MessagesScreen() {
           keyExtractor={(item, index) => item.id ? item.id.toString() : `user-${index}`}
           renderItem={renderUserItem}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.emptyText}>No other users found.</Text>}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No conversations yet.</Text>
+              <Text style={styles.emptySubtext}>
+                Start a conversation by searching for users.
+              </Text>
+            </View>
+          }
         />
       </View>
     </>
@@ -172,8 +191,21 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     marginTop: 50,
+    color: '#333',
+    fontSize: 18,
+    fontWeight: '600'
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptySubtext: {
+    textAlign: 'center',
     color: '#888',
-    fontSize: 16
+    fontSize: 14,
+    marginTop: 8,
   },
   chatContainer: {
     flex: 1,
