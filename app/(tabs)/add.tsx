@@ -190,14 +190,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   postButtonText: {
-<<<<<<< HEAD
-    color: "#fff",
-    fontWeight: "700",
-    textAlign: "center",
-=======
     color: '#fff',
     fontWeight: '700',
     textAlign: 'center',
->>>>>>> 029afab (removed clips tab, moved logout button to account page)
   },
 });
