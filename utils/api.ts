@@ -339,3 +339,138 @@ export async function getUsersWithMessageHistory(currentUserId: number): Promise
         return [];
     }
 }
+
+// ---------- Cat endpoints ----------
+
+/**
+ * GET /api/cats
+ * Returns all cats
+ */
+export async function getAllCats(): Promise<Cat[]> {
+    try {
+        const cats = await apiFetch<Cat[]>('/api/cats');
+        return cats;
+    } catch (error) {
+        console.error('Error fetching all cats:', error);
+        return [];
+    }
+}
+
+/**
+ * GET /api/cats/user/{userId}
+ * Returns all cats for a specific user
+ */
+export async function getCatsByUser(userId: number): Promise<Cat[]> {
+    try {
+        const cats = await apiFetch<Cat[]>(`/api/cats/user/${userId}`);
+        return cats;
+    } catch (error) {
+        console.error('Error fetching cats by user:', error);
+        return [];
+    }
+}
+
+/**
+ * Compress an image blob to reduce file size
+ */
+async function compressImage(blob: Blob): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+                (compressedBlob) => {
+                    if (compressedBlob) {
+                        resolve(compressedBlob);
+                    } else {
+                        reject(new Error('Compression failed'));
+                    }
+                },
+                'image/jpeg',
+                0.8 // 80% quality
+            );
+        };
+
+        img.onerror = reject;
+        img.src = URL.createObjectURL(blob);
+    });
+}
+
+/**
+ * POST /api/cats
+ * Create a new cat with image upload (with compression)
+ */
+export async function createCat(input: {
+    name: string;
+    bio?: string;
+    userId: number;
+    imageFile?: any;
+}): Promise<Cat | null> {
+    try {
+        const token = await getJwt();
+        if (!token) throw new Error('Not authenticated');
+
+        const formData = new FormData();
+        formData.append('name', input.name);
+        formData.append('userId', String(input.userId));
+        if (input.bio) formData.append('bio', input.bio);
+
+        if (input.imageFile) {
+            console.log('Original image:', input.imageFile.fileSize, 'bytes');
+            const res = await fetch(input.imageFile.uri);
+            const blob = await res.blob();
+
+            // Compress image if it's too large (over 1MB)
+            if (blob.size > 1024 * 1024) {
+                console.log('Compressing image...');
+                const compressed = await compressImage(blob);
+                console.log('Compressed:', blob.size, '→', compressed.size, 'bytes');
+                formData.append('file', compressed, 'cat-avatar.jpg');
+            } else {
+                formData.append('file', blob, 'cat-avatar.jpg');
+            }
+        }
+
+        const response = await fetch(`${BASE_URL}/api/cats`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Error ${response.status}: ${text}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating cat:', error);
+        throw error;
+    }
+}
