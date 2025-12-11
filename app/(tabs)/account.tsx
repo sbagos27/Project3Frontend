@@ -1,4 +1,3 @@
-
 import React, {
   useCallback,
   useEffect,
@@ -29,6 +28,7 @@ import {
   getPostsByCat,
   User as ApiUser,
   Post as ApiPost,
+  Cat as ApiCat,
 } from '@/utils/api';
 
 const COLS = 3;
@@ -45,6 +45,7 @@ export default function ProfileScreen() {
   // Selected cat
   const [selectedCatId, setSelectedCatIdState] = useState<number | null>(null);
   const [catLoading, setCatLoading] = useState(true);
+  const [activeCat, setActiveCat] = useState<ApiCat | null>(null);
 
   // User
   const [user, setUser] = useState<ApiUser | null>(null);
@@ -102,6 +103,38 @@ export default function ProfileScreen() {
 
     loadSelectedCat();
   }, [token]);
+
+  // 2b) Load active cat details (for name) once we know selectedCatId
+  useEffect(() => {
+    if (!token || selectedCatId == null) return;
+
+    const loadActiveCat = async () => {
+      try {
+        // fetch all cats, then find the active one
+        const res = await fetch(
+          'https://group5project3-74e9cad2d6ba.herokuapp.com/api/cats',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!res.ok) {
+          console.error('Failed to load cats for active cat name');
+          return;
+        }
+
+        const allCats: ApiCat[] = await res.json();
+        const found = allCats.find((c) => c.id === selectedCatId) ?? null;
+        setActiveCat(found);
+      } catch (err) {
+        console.error('Failed to load cat name:', err);
+      }
+    };
+
+    loadActiveCat();
+  }, [token, selectedCatId]);
 
   // 3) Load current user from /api/users/me
   useEffect(() => {
@@ -170,7 +203,11 @@ export default function ProfileScreen() {
         <View style={styles.catBar}>
           <Text style={styles.catBarText}>
             Active cat:{' '}
-            {selectedCatId != null ? `#${selectedCatId}` : 'none selected'}
+            {activeCat
+              ? activeCat.name
+              : selectedCatId != null
+              ? `#${selectedCatId}`
+              : 'none selected'}
           </Text>
           <TouchableOpacity
             style={styles.changeCatButton}
@@ -197,7 +234,7 @@ export default function ProfileScreen() {
 
             {/* Profile row */}
             <View style={styles.profileRow}>
-              {/* You don't have an avatar URL from backend yet, so use a placeholder */}
+              {/* Placeholder avatar */}
               <View style={styles.avatarPlaceholder}>
                 <Text style={{ fontWeight: '700', fontSize: 26, color: '#555' }}>
                   {user.username.charAt(0).toUpperCase()}
@@ -205,14 +242,13 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.statsRow}>
-                {/* Posts count = number of posts for this cat (or you could fetch by user instead) */}
                 <Stat num={posts.length} label="Posts" />
                 <Stat num={0} label="Followers" />
                 <Stat num={0} label="Following" />
               </View>
             </View>
 
-            {/* Bio block – you don’t have bio in backend yet, so just show email/provider */}
+            {/* Bio block */}
             <View style={styles.bioBlock}>
               <Text style={styles.name}>{user.username}</Text>
               {user.email && (
@@ -232,7 +268,7 @@ export default function ProfileScreen() {
         )}
       </View>
     ),
-    [user, selectedCatId, posts.length],
+    [user, selectedCatId, posts.length, activeCat],
   );
 
   // Grid item renderer
@@ -339,7 +375,6 @@ export default function ProfileScreen() {
                 id={String(selectedPost.id)}
                 image={selectedPost.imageUrl}
                 creator={user?.username ?? 'Unknown'}
-                // if PostCard supports caption, you can pass selectedPost.caption too
               />
             )}
           </View>
