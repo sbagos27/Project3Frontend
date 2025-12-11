@@ -1,57 +1,21 @@
 // app/(tabs)/home.tsx
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import Header from '@/components/Header';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { globalStyles } from '@/styles/globalStyle';
-import { getJwt } from '@/utils/auth';
+import { brandColor, globalStyles } from '@/styles/globalStyle';
+import { Post as ApiPost, getAllPosts, getAllUsers } from '@/utils/api';
 
-const BASE_URL = 'https://group5project3-74e9cad2d6ba.herokuapp.com';
-
-type Post = {
-  id: number;
-  caption: string;
-  imageUrl: string;
-  authorId: number;
-  createdAt?: string;
-  catId?: number;
-
-  // added on frontend after fetching username
+type PostWithUsername = ApiPost & {
   username?: string;
 };
 
 export default function HomeScreen() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostWithUsername[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch user info for each authorId
-  const fetchUsers = async (authorIds: number[], token: string) => {
-    const uniqueIds = [...new Set(authorIds)];
-    const userMap: Record<number, string> = {};
-
-    for (const id of uniqueIds) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/users/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          const user = await res.json();
-          userMap[id] = user.username;
-        } else {
-          userMap[id] = "Unknown User";
-        }
-      } catch (err) {
-        userMap[id] = "Unknown User";
-      }
-    }
-
-    return userMap;
-  };
 
   useEffect(() => {
     const fetchPostsAndUsers = async () => {
@@ -59,32 +23,23 @@ export default function HomeScreen() {
         setLoading(true);
         setError(null);
 
-        const token = await getJwt();
-        if (!token) {
-          setError('You must sign in first.');
+        // Fetch posts using API
+        const postsData = await getAllPosts();
+
+        if (postsData.length === 0) {
+          setPosts([]);
           setLoading(false);
           return;
         }
 
-        // 1️⃣ Fetch Posts
-        const res = await fetch(`${BASE_URL}/api/posts`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        // Fetch all users to map usernames
+        const allUsers = await getAllUsers();
+        const userMap: Record<number, string> = {};
+        allUsers.forEach(user => {
+          userMap[user.id] = user.username;
         });
 
-        if (!res.ok) {
-          throw new Error(`Error ${res.status}: ${await res.text()}`);
-        }
-
-        const postsData: Post[] = await res.json();
-
-        // 2️⃣ Fetch usernames for all authorIds
-        const authorIds = postsData.map((p) => p.authorId);
-        const userMap = await fetchUsers(authorIds, token);
-
-        // 3️⃣ Attach usernames to posts
+        // Attach usernames to posts
         const postsWithUsernames = postsData.map((post) => ({
           ...post,
           username: userMap[post.authorId] || "Unknown User",
@@ -106,43 +61,39 @@ export default function HomeScreen() {
     <>
       <Header />
 
-      <ScrollView>
-        <ThemedView style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 32 }}>
-
-          <ThemedView style={globalStyles.titleContainer}>
-            <ThemedText type="title">Whiskr Feed</ThemedText>
-          </ThemedView>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.feedContainer}>
 
           {/* Loading */}
           {loading && (
-            <ThemedView style={globalStyles.centered}>
+            <View style={globalStyles.centered}>
               <ActivityIndicator />
               <ThemedText style={{ marginTop: 8 }}>Loading cats…</ThemedText>
-            </ThemedView>
+            </View>
           )}
 
           {/* Error */}
           {error && !loading && (
-            <ThemedView style={globalStyles.centered}>
+            <View style={globalStyles.centered}>
               <ThemedText type="subtitle">Error</ThemedText>
               <ThemedText>{error}</ThemedText>
-            </ThemedView>
+            </View>
           )}
 
           {/* No posts */}
           {!loading && !error && posts.length === 0 && (
-            <ThemedView style={globalStyles.centered}>
+            <View style={globalStyles.centered}>
               <ThemedText>No posts yet. Be the first to share a cat!</ThemedText>
-            </ThemedView>
+            </View>
           )}
 
           {/* Posts */}
           {!loading && !error &&
             posts.map((post) => (
-              <ThemedView key={post.id} style={globalStyles.postCard}>
+              <View key={post.id} style={styles.postCard}>
 
                 {/* Header: Username only */}
-                <View style={globalStyles.postHeader}>
+                <View style={styles.postHeader}>
                   <ThemedText style={globalStyles.usernameText}>
                     {post.username || 'Unknown User'}
                   </ThemedText>
@@ -152,13 +103,13 @@ export default function HomeScreen() {
                 {post.imageUrl && (
                   <Image
                     source={{ uri: post.imageUrl }}
-                    style={globalStyles.postImage}
+                    style={styles.postImage}
                     contentFit="cover"
                   />
                 )}
 
                 {/* Footer: Actions (placeholder), Caption, Date */}
-                <View style={globalStyles.postFooter}>
+                <View style={styles.postFooter}>
 
                   {/* Action Icons (Heart, Comment, Share) - Placeholders for visual fidelity */}
                   <View style={globalStyles.actionIconsFn}>
@@ -184,11 +135,53 @@ export default function HomeScreen() {
                   )}
                 </View>
 
-              </ThemedView>
+              </View>
             ))}
 
-        </ThemedView>
+        </View>
       </ScrollView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    backgroundColor: brandColor,
+  },
+  feedContainer: {
+    width: '100%',
+    maxWidth: 600,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 32,
+  },
+  postCard: {
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  postImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  postFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+});
