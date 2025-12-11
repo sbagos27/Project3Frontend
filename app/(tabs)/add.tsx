@@ -2,7 +2,7 @@
 // npm install expo-image-picker
 // use above if errors
 import { globalStyles } from '@/styles/globalStyle';
-import { getJwt, getUserId, logout } from '@/utils/auth';
+import { getJwt, getUserId } from '@/utils/auth';
 import * as ImagePicker from "expo-image-picker";
 import { router } from 'expo-router';
 
@@ -160,18 +160,9 @@ export default function AddScreen() {
       </TouchableOpacity>
 
       {message && <Text style={{ marginTop: 10 }}>{message}</Text>}
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
     </View>
   );
 }
-
-const handleLogout = async () => {
-  await logout();
-  router.replace('/signIn');
-};
 
 const styles = StyleSheet.create({
   input: {
@@ -200,18 +191,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   postButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  logoutButton: {
-    marginTop: 40,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: "#ff3b30",
-  },
-  logoutText: {
     color: "#fff",
     fontWeight: "700",
     textAlign: "center",

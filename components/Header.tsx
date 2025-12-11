@@ -33,16 +33,7 @@ export default function Header() {
 
       {/* Right: action icons */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        {/* Heart / Activity */}
-        <Pressable
-          onPress={() => router.push('/activity')}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            padding: 6,
-          })}
-        >
-          <IconSymbol name="heart.fill" color={brandColor} size={28} />
-        </Pressable>
+        
 
         {/* Messages */}
         <Pressable
